@@ -1,4 +1,6 @@
 from typing import Annotated
+import base64
+from pathlib import Path
 
 from nonebot import on_command, on_fullmatch, on_regex, require
 from nonebot.adapters.onebot.v11 import (
@@ -89,14 +91,17 @@ async def _(event: GroupMessageEvent, args: Annotated[Message, CommandArg()]):
     is_first, image_file = fortune_manager.divine(gid, uid, None, None)
     if image_file is None:
         await general_divine.finish("今日运势生成出错……")
+    
+    file_path = Path(image_file).resolve()
+    img_b64 = base64.b64encode(file_path.read_bytes()).decode()
 
     if not is_first:
         msg = MessageSegment.text("你今天抽过签了，再给你看一次哦🤗\n") + MessageSegment.image(
-            image_file
+            f"base64://{img_b64}"
         )
     else:
         logger.info(f"User {uid} | Group {gid} 占卜了今日运势")
-        msg = MessageSegment.text("✨今日运势✨\n") + MessageSegment.image(image_file)
+        msg = MessageSegment.text("✨今日运势✨\n") + MessageSegment.image(f"base64://{img_b64}")
 
     await general_divine.finish(msg, at_sender=True)
 
